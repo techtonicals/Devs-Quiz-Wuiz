@@ -1,0 +1,5 @@
+{
+  "name": "Dev's Quiz Whiz",
+  "description": "An interactive quiz application for students in Houston ISD to test their knowledge across various academic subjects and topics. Quizzes are dynamically generated using AI.",
+  "requestFramePermissions": []
+}
