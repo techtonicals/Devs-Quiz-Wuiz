@@ -11,9 +11,18 @@ interface AiQuizResponse {
 
 export async function getTopicsForSubject(subject: string, grade: number): Promise<string[]> {
   try {
+    let specificContext = "";
+    if (subject === 'NWEA MAP Math') {
+      specificContext = "Include domains like 'Operations and Algebraic Thinking', 'Number and Operations', 'Measurement and Data', and 'Geometry'.";
+    } else if (subject === 'NWEA MAP English') {
+      specificContext = "Include domains like 'Word Recognition and Vocabulary', 'Reading Literature', 'Reading Informational Text', and 'Language Usage/Grammar'.";
+    } else if (subject === 'NWEA MAP Science') {
+      specificContext = "Include domains like 'Systems and Inquiry', 'Physical Science', 'Life Science', and 'Earth and Space Science'.";
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Generate a list of 10 specific academic topics for a ${grade}th-grade student in Houston ISD for the subject of '${subject}'.`,
+      contents: `Generate a list of 10 specific academic topics for a ${grade}th-grade student in Houston ISD for the subject of '${subject}'. ${specificContext}`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -38,12 +47,24 @@ export async function getTopicsForSubject(subject: string, grade: number): Promi
 
 export async function generateQuiz(subject: string, topic: string, numQuestions: number, grade: number, difficulty: Difficulty): Promise<QuizQuestion[]> {
   try {
+    const isNWEA = subject.startsWith('NWEA MAP');
     const topicPrompt = topic === 'All' ? `covering a comprehensive range of topics` : `about '${topic}'`;
     
+    let nweaInstructions = '';
+    if (isNWEA) {
+      nweaInstructions = `The subject is ${subject}. These questions MUST follow the NWEA MAP assessment style for ${grade}th grade:
+      - Use RIT-aligned vocabulary and sentence structure.
+      - Math: Focus on multi-step word problems, data interpretation, and conceptual understanding rather than just calculation.
+      - English: Focus on context clues, inferential reading comprehension, and standard English conventions (grammar/punctuation).
+      - Science: Focus on interpreting diagrams, scientific inquiry processes, and identifying variables or patterns.
+      - The questions should mimic the rigor of a real NWEA MAP assessment.`;
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Generate a ${numQuestions}-question, ${grade}th-grade level, multiple-choice quiz ${topicPrompt} within the subject of '${subject}' for a student in Houston ISD. 
+      contents: `Generate a ${numQuestions}-question, ${grade}th-grade level, multiple-choice quiz ${topicPrompt} within the subject of '${subject}'. 
       The difficulty level should be '${difficulty}'. 
+      ${nweaInstructions}
       Ensure all questions are unique and no question is repeated within the quiz.
       Each question must have exactly 4 options, and only one is correct. 
       IMPORTANT: For every question, provide a detailed, encouraging, and educational 'explanation' (max 2-3 sentences) explaining WHY the correct answer is right and why other common misconceptions might be wrong.`,
@@ -103,6 +124,7 @@ export async function generateQuizFromPrompt(prompt: string, numQuestions: numbe
       
       Generate a ${numQuestions}-question, ${grade}th-grade level, multiple-choice quiz about the identified topic.
       The difficulty level should be '${difficulty}'.
+      If the request implies an NWEA MAP context (Math, English, or Science), ensure the questions mimic the specific NWEA MAP format for that subject.
       Ensure all questions are unique.
       Each question must have exactly 4 options, and only one is correct.
       IMPORTANT: For every question, provide a detailed, encouraging, and educational 'explanation' explaining why the correct answer is right.
